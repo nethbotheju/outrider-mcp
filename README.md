@@ -6,7 +6,7 @@ An MCP server that gives your coding agent the ability to search the web and fet
 
 ### `web_search`
 
-Search the web via Brave Search. Returns a numbered list of sources with titles, URLs, and descriptions.
+Search the web via DuckDuckGo. Returns a numbered list of sources with titles, URLs, and descriptions. No API key required.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -24,23 +24,19 @@ Fetch a web page and return its content as clean text. Strips scripts, styles, n
 
 ## Setup
 
-### 1. Get a Brave Search API key
-
-Sign up at [brave.com/search/api](https://brave.com/search/api/) -- the free tier includes 1,000 queries/month.
-
-### 2. Download the binary
+### 1. Download the binary
 
 Download the latest release for your platform from the [Releases](../../releases) page.
 
-### 3. Make it executable (macOS/Linux)
+### 2. Make it executable (macOS/Linux)
 
 ```bash
 chmod +x web-search-mcp
 ```
 
-### 4. Add to your coding agent
+### 3. Add to your coding agent
 
-Pick your agent below and add the config. Replace `/path/to/web-search-mcp` with the actual path to the binary and `your_api_key_here` with your Brave API key.
+Pick your agent below and add the config. Replace `/path/to/web-search-mcp` with the actual path to the binary.
 
 ---
 
@@ -52,10 +48,7 @@ Add to your project's `.mcp.json` or your global `~/.claude/settings.json`:
 {
   "mcpServers": {
     "web-search": {
-      "command": "/path/to/web-search-mcp",
-      "env": {
-        "BRAVE_SEARCH_API_KEY": "your_api_key_here"
-      }
+      "command": "/path/to/web-search-mcp"
     }
   }
 }
@@ -64,7 +57,7 @@ Add to your project's `.mcp.json` or your global `~/.claude/settings.json`:
 Or use the CLI:
 
 ```bash
-claude mcp add web-search /path/to/web-search-mcp -e BRAVE_SEARCH_API_KEY=your_api_key_here
+claude mcp add web-search /path/to/web-search-mcp
 ```
 
 ### Claude Desktop
@@ -75,10 +68,7 @@ Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) o
 {
   "mcpServers": {
     "web-search": {
-      "command": "/path/to/web-search-mcp",
-      "env": {
-        "BRAVE_SEARCH_API_KEY": "your_api_key_here"
-      }
+      "command": "/path/to/web-search-mcp"
     }
   }
 }
@@ -92,10 +82,7 @@ Add to your project's `.cursor/mcp.json` or global Cursor MCP settings:
 {
   "mcpServers": {
     "web-search": {
-      "command": "/path/to/web-search-mcp",
-      "env": {
-        "BRAVE_SEARCH_API_KEY": "your_api_key_here"
-      }
+      "command": "/path/to/web-search-mcp"
     }
   }
 }
@@ -110,10 +97,7 @@ Add to your VS Code `settings.json` under `mcp.servers`:
   "mcp": {
     "servers": {
       "web-search": {
-        "command": "/path/to/web-search-mcp",
-        "env": {
-          "BRAVE_SEARCH_API_KEY": "your_api_key_here"
-        }
+        "command": "/path/to/web-search-mcp"
       }
     }
   }
@@ -128,13 +112,65 @@ Edit `~/.codeium/windsurf/mcp_config.json`:
 {
   "mcpServers": {
     "web-search": {
-      "command": "/path/to/web-search-mcp",
-      "env": {
-        "BRAVE_SEARCH_API_KEY": "your_api_key_here"
-      }
+      "command": "/path/to/web-search-mcp"
     }
   }
 }
+```
+
+### OpenCode
+
+Add to your project's `opencode.json`:
+
+```json
+{
+  "mcp": {
+    "web-search": {
+      "type": "local",
+      "command": [
+        "/path/to/web-search-mcp"
+      ]
+    }
+  }
+}
+```
+
+## Development
+
+### Prerequisites
+
+- Go 1.25+
+
+### Project Structure
+
+```
+web-search-mcp/
+├── main.go              # Server entry point — wires tools to the MCP server
+├── fetcher/             # HTTP fetching + HTML-to-text extraction
+│   └── fetcher.go
+├── search/              # Search provider interface and implementations
+│   ├── provider.go      # Provider interface, shared types, helpers
+│   └── duckduckgo.go    # DuckDuckGo HTML search (free, no API key)
+├── tools/               # MCP tool definitions and handlers
+│   ├── web_search.go    # web_search tool
+│   └── fetch.go         # fetch tool
+└── test/                # Integration tests (live network calls)
+    ├── search/
+    │   └── duckduckgo_test.go
+    └── fetch/
+        └── fetcher_test.go
+```
+
+### Build
+
+```bash
+go build -o web-search-mcp .
+```
+
+### Run Tests
+
+```bash
+go test ./test/search/ ./test/fetch/ -v -count=1 -timeout 60s
 ```
 
 ## Verify It Works
