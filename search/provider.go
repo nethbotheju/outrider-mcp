@@ -34,8 +34,14 @@ func FormatResults(results []SearchResult) string {
 	return buf.String()
 }
 
+// DefaultCount is the number of results returned when count is not specified.
+const DefaultCount = 10
+
 // clamp restricts n to the inclusive range [min, max].
 func clamp(n, min, max int) int {
+	if n <= 0 {
+		n = DefaultCount
+	}
 	if n < min {
 		return min
 	}
