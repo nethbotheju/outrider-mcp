@@ -1,0 +1,22 @@
+# Environment variables
+.env
+
+# Compiled binary
+web-search-mcp
+*.exe
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Go build cache
+*.test
+*.out
+
+.plans
