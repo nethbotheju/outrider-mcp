@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/nethbotheju/web-search-mcp/fetcher"
 	"github.com/nethbotheju/web-search-mcp/search"
@@ -31,21 +29,16 @@ type FetchOutput struct {
 }
 
 var (
-	braveClient *search.BraveClient
-	httpFetcher *fetcher.Fetcher
+	searchProvider search.Provider
+	httpFetcher    *fetcher.Fetcher
 )
 
 func main() {
-	_ = godotenv.Load()
-
-	apiKey := os.Getenv("BRAVE_SEARCH_API_KEY")
-	braveClient = search.NewBraveClient(apiKey)
+	searchProvider = search.NewDuckDuckGoProvider()
 	httpFetcher = fetcher.NewFetcher()
 
 	log.Println("Starting web-search-mcp server...")
-	if apiKey == "" {
-		log.Println("WARNING: BRAVE_SEARCH_API_KEY is not set. web_search tool will not work.")
-	}
+	log.Printf("Search provider: %s", searchProvider.Name())
 
 	server := mcp.NewServer(
 		&mcp.Implementation{
@@ -57,7 +50,7 @@ func main() {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "web_search",
-		Description: "Search the web using Brave Search. Returns a list of sources with titles, URLs, and descriptions.",
+		Description: "Search the web using DuckDuckGo. Returns a list of sources with titles, URLs, and descriptions.",
 	}, handleWebSearch)
 
 	mcp.AddTool(server, &mcp.Tool{
@@ -86,7 +79,7 @@ func handleWebSearch(ctx context.Context, req *mcp.CallToolRequest, input WebSea
 		input.Count = 10
 	}
 
-	results, err := braveClient.Search(ctx, input.Query, input.Count)
+	results, err := searchProvider.Search(ctx, input.Query, input.Count)
 	if err != nil {
 		result := &mcp.CallToolResult{
 			Content: []mcp.Content{
