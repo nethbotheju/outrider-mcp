@@ -99,3 +99,19 @@ func (f *Fetcher) fetchWithFallback(ctx context.Context, rawURL string) (*FetchR
 
 	return nil, fmt.Errorf("all tiers failed:\n  - %s", strings.Join(errs, "\n  - "))
 }
+
+func (f *Fetcher) FetchViaJina(ctx context.Context, rawURL string) (*FetchResult, error) {
+	return f.fetchViaJina(ctx, rawURL)
+}
+
+func (f *Fetcher) FetchViaBrowser(ctx context.Context, rawURL string) (*FetchResult, error) {
+	return f.fetchViaBrowser(ctx, rawURL)
+}
+
+func (f *Fetcher) FetchViaStatic(ctx context.Context, rawURL string) (*FetchResult, error) {
+	return newHTTPStaticFetcher().fetch(ctx, rawURL)
+}
+
+func ChromeAvailable() bool {
+	return chromeAvailable()
+}
