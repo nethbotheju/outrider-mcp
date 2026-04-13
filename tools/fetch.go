@@ -16,7 +16,7 @@ type FetchInput struct {
 
 // FetchOutput defines the output for the fetch tool.
 type FetchOutput struct {
-	Content string `json:"content" jsonschema:"The fetched page content as clean text"`
+	Content string `json:"content" jsonschema:"The fetched page content as clean Markdown"`
 }
 
 // fetchHandler holds the dependencies for the fetch tool.
@@ -66,6 +66,6 @@ func RegisterFetch(server *mcp.Server, f *fetcher.Fetcher) {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "fetch",
-		Description: "Fetch the content of a web page URL and return it as clean text. Useful for reading the full content of a page found via web_search.",
+		Description: "Fetch the content of a web page URL and return it as clean Markdown. Uses Jina Reader API (primary), headless Chrome (fallback), or static HTTP + readability (last resort). Useful for reading the full content of a page found via web_search.",
 	}, h.handle)
 }
