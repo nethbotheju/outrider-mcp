@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -13,17 +14,23 @@ import (
 
 // chromeAvailable checks if a Chrome/Chromium binary exists on the system.
 func chromeAvailable() bool {
-	var name string
 	switch runtime.GOOS {
 	case "darwin":
-		name = "Google Chrome"
+		if _, err := os.Stat("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"); err == nil {
+			return true
+		}
+		_, err := exec.LookPath("google-chrome")
+		return err == nil
 	case "windows":
-		name = "chrome"
+		_, err := exec.LookPath("chrome")
+		return err == nil
 	default:
-		name = "chromium-browser"
+		_, err := exec.LookPath("chromium-browser")
+		if err != nil {
+			_, err = exec.LookPath("google-chrome")
+		}
+		return err == nil
 	}
-	_, err := exec.LookPath(name)
-	return err == nil
 }
 
 func (f *Fetcher) fetchViaBrowser(ctx context.Context, rawURL string) (*FetchResult, error) {
