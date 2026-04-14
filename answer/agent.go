@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/nethbotheju/web-search-mcp/fetcher"
 	"github.com/nethbotheju/web-search-mcp/search"
@@ -17,7 +18,7 @@ import (
 
 const (
 	defaultBaseURL = "https://generativelanguage.googleapis.com/v1beta/openai/"
-	defaultModel   = "gemini-2.5-flash-lite"
+	defaultModel   = "gemma-4-31b-it"
 	maxIterations  = 5
 	maxFetchChars  = 10000
 )
@@ -139,9 +140,10 @@ func (a *Agent) Run(ctx context.Context, question string) (string, error) {
 			continue
 		}
 
-		log.Printf("[answer] iteration %d: final answer received (%d chars)", i+1, len(choice.Message.Content))
-		log.Printf("[answer] answer: %s", choice.Message.Content)
-		return choice.Message.Content, nil
+		answer := stripThoughtTags(choice.Message.Content)
+		log.Printf("[answer] iteration %d: final answer received (%d chars)", i+1, len(answer))
+		log.Printf("[answer] answer: %s", answer)
+		return answer, nil
 	}
 
 	return "", fmt.Errorf("agent loop exceeded %d iterations without producing a final answer", maxIterations)
@@ -188,6 +190,23 @@ func (a *Agent) executeTool(ctx context.Context, tc openai.ChatCompletionMessage
 	default:
 		return "", fmt.Errorf("unknown tool: %s", fn.Name)
 	}
+}
+
+// stripThoughtTags removes <thought>...</thought> blocks that some models
+func stripThoughtTags(s string) string {
+	for {
+		start := strings.Index(s, "<thought>")
+		if start == -1 {
+			break
+		}
+		end := strings.Index(s, "</thought>")
+		if end == -1 {
+			s = s[:start]
+			break
+		}
+		s = s[:start] + s[end+len("</thought>"):]
+	}
+	return strings.TrimSpace(s)
 }
 
 const systemPrompt = `You are a research assistant with access to web search and page fetching tools. Your job is to find accurate, up-to-date information and return concise, factual answers.
