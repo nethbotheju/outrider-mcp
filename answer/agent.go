@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/nethbotheju/web-search-mcp/fetcher"
@@ -91,22 +92,29 @@ func (a *Agent) Run(ctx context.Context, question string) (string, error) {
 	}
 
 	for i := range maxIterations {
+		log.Printf("[answer] iteration %d: sending request to LLM", i+1)
+
 		resp, err := a.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 			Model:    a.model,
 			Messages: messages,
 			Tools:    tools,
 		})
 		if err != nil {
+			log.Printf("[answer] iteration %d: LLM API error: %v", i+1, err)
 			return "", fmt.Errorf("LLM API error (iteration %d): %w", i+1, err)
 		}
 
 		if len(resp.Choices) == 0 {
+			log.Printf("[answer] iteration %d: LLM returned no choices", i+1)
 			return "", fmt.Errorf("LLM returned no choices (iteration %d)", i+1)
 		}
 
 		choice := resp.Choices[0]
+		log.Printf("[answer] iteration %d: finish_reason=%s", i+1, choice.FinishReason)
 
 		if choice.FinishReason == "tool_calls" || len(choice.Message.ToolCalls) > 0 {
+			log.Printf("[answer] iteration %d: LLM requested %d tool call(s)", i+1, len(choice.Message.ToolCalls))
+
 			assistantMsg := choice.Message.ToAssistantMessageParam()
 			assistantMsg.ToolCalls = make([]openai.ChatCompletionMessageToolCallUnionParam, len(choice.Message.ToolCalls))
 			for j, tc := range choice.Message.ToolCalls {
@@ -117,15 +125,22 @@ func (a *Agent) Run(ctx context.Context, question string) (string, error) {
 			})
 
 			for _, tc := range choice.Message.ToolCalls {
+				log.Printf("[answer]   tool_call: %s(%s)", tc.Function.Name, tc.Function.Arguments)
+
 				result, err := a.executeTool(ctx, tc)
 				if err != nil {
 					result = fmt.Sprintf("Error executing tool: %v", err)
+					log.Printf("[answer]   tool_error: %v", err)
+				} else {
+					log.Printf("[answer]   tool_result: %s", result)
 				}
 				messages = append(messages, openai.ToolMessage(result, tc.ID))
 			}
 			continue
 		}
 
+		log.Printf("[answer] iteration %d: final answer received (%d chars)", i+1, len(choice.Message.Content))
+		log.Printf("[answer] answer: %s", choice.Message.Content)
 		return choice.Message.Content, nil
 	}
 
