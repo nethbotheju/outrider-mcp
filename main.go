@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/nethbotheju/web-search-mcp/answer"
 	"github.com/nethbotheju/web-search-mcp/fetcher"
 	"github.com/nethbotheju/web-search-mcp/search"
 	"github.com/nethbotheju/web-search-mcp/tools"
@@ -27,6 +29,14 @@ func main() {
 
 	tools.RegisterWebSearch(server, provider)
 	tools.RegisterFetch(server, fetcher)
+
+	if apiKey := os.Getenv("ANSWER_LLM_API_KEY"); apiKey != "" {
+		agent := answer.NewAgent(provider, fetcher)
+		tools.RegisterAnswer(server, agent)
+		log.Println("Answer tool: enabled")
+	} else {
+		log.Println("Answer tool: disabled (set ANSWER_LLM_API_KEY to enable)")
+	}
 
 	// stdout is reserved for JSON-RPC on stdio transport -- all logging must go to stderr.
 	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
