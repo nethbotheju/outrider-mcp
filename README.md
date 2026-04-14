@@ -22,103 +22,41 @@ Fetch a web page and return its content as clean text. Strips scripts, styles, n
 | `url` | string | Yes | The URL to fetch |
 | `maxLength` | int | No | Max content length in characters (default 50000) |
 
+### `answer`
+
+Answer a question by searching the web and reading relevant pages. Returns a concise answer with sources. Uses a side agent (LLM + web_search + fetch) internally, so the main agent's context window stays clean. Requires an API key.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `question` | string | Yes | The question to answer |
+
+When the `answer` tool is enabled, prefer it over manually calling `web_search` + `fetch` for factual questions. It produces the same result using a fraction of the context window.
+
 ## Setup
 
 ### 1. Download the binary
 
 Download the latest release for your platform from the [Releases](../../releases) page.
 
-### 2. Make it executable (macOS/Linux)
+### 2. Configure the API key (for the `answer` tool)
 
-```bash
-chmod +x web-search-mcp
-```
+The `answer` tool requires an API key for a side LLM. [Google AI Studio](https://aistudio.google.com/apikey) offers a decent free quota for models like **Gemma 4 31B** (`gemma-4-31b-it`) and **Gemma 4 26B** (`gemma-4-26b-a4b-it`). You can also use any OpenAI-compatible endpoint (OpenRouter, Ollama, etc.) by changing the base URL.
+
+The default base URL is set to Google's Gemini endpoint and the default model is `gemma-4-31b-it`. If you want to use a different model or endpoint, set these environment variables alongside the API key:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ANSWER_LLM_API_KEY` | — | API key for the side LLM. If not set, the `answer` tool is disabled. |
+| `ANSWER_LLM_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai/` | Base URL for the LLM API (any OpenAI-compatible endpoint) |
+| `ANSWER_LLM_MODEL` | `gemma-4-31b-it` | Model name |
+
+This key is only needed for the `answer` tool. The `web_search` and `fetch` tools work without it.
 
 ### 3. Add to your coding agent
 
-Pick your agent below and add the config. Replace `/path/to/web-search-mcp` with the actual path to the binary.
+Replace `/path/to/web-search-mcp` with the actual path to the binary.
 
----
-
-### Claude Code (CLI)
-
-Add to your project's `.mcp.json` or your global `~/.claude/settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "web-search": {
-      "command": "/path/to/web-search-mcp"
-    }
-  }
-}
-```
-
-Or use the CLI:
-
-```bash
-claude mcp add web-search /path/to/web-search-mcp
-```
-
-### Claude Desktop
-
-Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
-
-```json
-{
-  "mcpServers": {
-    "web-search": {
-      "command": "/path/to/web-search-mcp"
-    }
-  }
-}
-```
-
-### Cursor
-
-Add to your project's `.cursor/mcp.json` or global Cursor MCP settings:
-
-```json
-{
-  "mcpServers": {
-    "web-search": {
-      "command": "/path/to/web-search-mcp"
-    }
-  }
-}
-```
-
-### VS Code (Copilot / Continue)
-
-Add to your VS Code `settings.json` under `mcp.servers`:
-
-```json
-{
-  "mcp": {
-    "servers": {
-      "web-search": {
-        "command": "/path/to/web-search-mcp"
-      }
-    }
-  }
-}
-```
-
-### Windsurf
-
-Edit `~/.codeium/windsurf/mcp_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "web-search": {
-      "command": "/path/to/web-search-mcp"
-    }
-  }
-}
-```
-
-### OpenCode
+#### OpenCode
 
 Add to your project's `opencode.json`:
 
@@ -129,11 +67,16 @@ Add to your project's `opencode.json`:
       "type": "local",
       "command": [
         "/path/to/web-search-mcp"
-      ]
+      ],
+      "env": {
+        "ANSWER_LLM_API_KEY": "your-google-ai-studio-api-key"
+      }
     }
   }
 }
 ```
+
+If `ANSWER_LLM_API_KEY` is not set, the server starts with only `web_search` and `fetch` -- fully backward compatible.
 
 ## Development
 
@@ -146,6 +89,8 @@ Add to your project's `opencode.json`:
 ```
 web-search-mcp/
 ├── main.go              # Server entry point — wires tools to the MCP server
+├── answer/              # Side agent for the answer tool
+│   └── agent.go         # LLM client, tool schemas, agent loop
 ├── fetcher/             # HTTP fetching + HTML-to-text extraction
 │   └── fetcher.go
 ├── search/              # Search provider interface and implementations
@@ -153,12 +98,15 @@ web-search-mcp/
 │   └── duckduckgo.go    # DuckDuckGo HTML search (free, no API key)
 ├── tools/               # MCP tool definitions and handlers
 │   ├── web_search.go    # web_search tool
-│   └── fetch.go         # fetch tool
+│   ├── fetch.go         # fetch tool
+│   └── answer.go        # answer tool
 └── test/                # Integration tests (live network calls)
     ├── search/
     │   └── duckduckgo_test.go
-    └── fetch/
-        └── fetcher_test.go
+    ├── fetch/
+    │   └── fetcher_test.go
+    └── answer/
+        └── answer_test.go
 ```
 
 ### Build
@@ -173,6 +121,12 @@ go build -o web-search-mcp .
 go test ./test/search/ ./test/fetch/ -v -count=1 -timeout 60s
 ```
 
+For answer tool tests (requires `ANSWER_LLM_API_KEY`):
+
+```bash
+ANSWER_LLM_API_KEY=your-key go test ./test/answer/ -v -count=1 -timeout 120s
+```
+
 ## Verify It Works
 
 Use the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to test the server:
@@ -181,7 +135,7 @@ Use the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to te
 npx @modelcontextprotocol/inspector /path/to/web-search-mcp
 ```
 
-This opens a web UI where you can call both tools and inspect the responses.
+This opens a web UI where you can call all tools and inspect the responses.
 
 ## License
 
