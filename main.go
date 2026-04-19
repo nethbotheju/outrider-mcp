@@ -6,22 +6,22 @@ import (
 	"os"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/nethbotheju/web-search-mcp/answer"
-	"github.com/nethbotheju/web-search-mcp/fetcher"
-	"github.com/nethbotheju/web-search-mcp/search"
-	"github.com/nethbotheju/web-search-mcp/tools"
+	"github.com/nethbotheju/outrider-mcp/answer"
+	"github.com/nethbotheju/outrider-mcp/fetcher"
+	"github.com/nethbotheju/outrider-mcp/search"
+	"github.com/nethbotheju/outrider-mcp/tools"
 )
 
 func main() {
 	provider := search.NewDuckDuckGoProvider()
 	fetcher := fetcher.NewFetcher()
 
-	log.Println("Starting web-search-mcp server...")
+	log.Println("Starting outrider server...")
 	log.Printf("Search provider: %s", provider.Name())
 
 	server := mcp.NewServer(
 		&mcp.Implementation{
-			Name:    "web-search-mcp",
+			Name:    "outrider",
 			Version: "1.0.0",
 		},
 		nil,

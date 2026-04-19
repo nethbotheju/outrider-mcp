@@ -32,7 +32,7 @@ func (h *httpStaticFetcher) fetch(ctx context.Context, rawURL string) (*FetchRes
 		return nil, fmt.Errorf("static: creating request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "web-search-mcp/1.0")
+	req.Header.Set("User-Agent", "outrider/1.0")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,text/plain")
 
 	resp, err := h.client.Do(req)

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nethbotheju/web-search-mcp/fetcher"
+	"github.com/nethbotheju/outrider-mcp/fetcher"
 )
 
 // TestFetcherHTMPLive fetches a real HTML page and verifies content extraction.

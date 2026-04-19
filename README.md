@@ -1,6 +1,6 @@
-# Web Search MCP
+# Outrider
 
-An MCP server that gives your coding agent the ability to search the web and fetch page content. Ships as a single binary -- no Go installation, no `node_modules`, no runtime dependencies.
+MCP server that rides ahead of your AI agent — searching the web, fetching pages, and extracting clean content. Ships as a single binary -- no Go installation, no `node_modules`, no runtime dependencies.
 
 ## Tools
 
@@ -54,7 +54,7 @@ This key is only needed for the `answer` tool. The `web_search` and `fetch` tool
 
 ### 3. Add to your coding agent
 
-Replace `/path/to/web-search-mcp` with the actual path to the binary.
+Replace `/path/to/outrider` with the actual path to the binary.
 
 #### OpenCode
 
@@ -66,7 +66,7 @@ Add to your project's `opencode.json`:
     "web-search": {
       "type": "local",
       "command": [
-        "/path/to/web-search-mcp"
+        "/path/to/outrider"
       ],
       "env": {
         "ANSWER_LLM_API_KEY": "your-google-ai-studio-api-key"
@@ -87,7 +87,7 @@ If `ANSWER_LLM_API_KEY` is not set, the server starts with only `web_search` and
 ### Project Structure
 
 ```
-web-search-mcp/
+outrider-mcp/
 ├── main.go              # Server entry point — wires tools to the MCP server
 ├── answer/              # Side agent for the answer tool
 │   └── agent.go         # LLM client, tool schemas, agent loop
@@ -112,7 +112,7 @@ web-search-mcp/
 ### Build
 
 ```bash
-go build -o web-search-mcp .
+go build -o outrider .
 ```
 
 ### Run Tests
@@ -132,7 +132,7 @@ ANSWER_LLM_API_KEY=your-key go test ./test/answer/ -v -count=1 -timeout 120s
 Use the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to test the server:
 
 ```bash
-npx @modelcontextprotocol/inspector /path/to/web-search-mcp
+npx @modelcontextprotocol/inspector /path/to/outrider
 ```
 
 This opens a web UI where you can call all tools and inspect the responses.

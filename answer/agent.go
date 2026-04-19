@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/nethbotheju/web-search-mcp/fetcher"
-	"github.com/nethbotheju/web-search-mcp/search"
+	"github.com/nethbotheju/outrider-mcp/fetcher"
+	"github.com/nethbotheju/outrider-mcp/search"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"

@@ -3,6 +3,7 @@
 
 # Compiled binary
 web-search-mcp
+outrider
 *.exe
 
 # OS files

@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nethbotheju/web-search-mcp/answer"
-	"github.com/nethbotheju/web-search-mcp/fetcher"
-	"github.com/nethbotheju/web-search-mcp/search"
+	"github.com/nethbotheju/outrider-mcp/answer"
+	"github.com/nethbotheju/outrider-mcp/fetcher"
+	"github.com/nethbotheju/outrider-mcp/search"
 )
 
 func TestAnswerLive(t *testing.T) {

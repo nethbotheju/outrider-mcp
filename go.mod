@@ -1,4 +1,4 @@
-module github.com/nethbotheju/web-search-mcp
+module github.com/nethbotheju/outrider-mcp
 
 go 1.26
 

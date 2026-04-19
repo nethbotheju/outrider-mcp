@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/nethbotheju/web-search-mcp/fetcher"
+	"github.com/nethbotheju/outrider-mcp/fetcher"
 )
 
 // FetchInput defines the parameters for the fetch tool.

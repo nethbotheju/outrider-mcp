@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/nethbotheju/web-search-mcp/search"
+	"github.com/nethbotheju/outrider-mcp/search"
 )
 
 // WebSearchInput defines the parameters for the web_search tool.

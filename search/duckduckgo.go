@@ -37,7 +37,7 @@ func (p *DuckDuckGoProvider) Search(ctx context.Context, query string, count int
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; web-search-mcp/1.0)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; outrider/1.0)")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml")
 
 	resp, err := p.HTTPClient.Do(req)

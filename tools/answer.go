@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/nethbotheju/web-search-mcp/answer"
+	"github.com/nethbotheju/outrider-mcp/answer"
 )
 
 type AnswerInput struct {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nethbotheju/web-search-mcp/search"
+	"github.com/nethbotheju/outrider-mcp/search"
 )
 
 // TestDuckDuckGoSearchLive hits the real DuckDuckGo HTML endpoint.
