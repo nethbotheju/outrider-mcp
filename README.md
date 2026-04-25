@@ -6,7 +6,11 @@ MCP server that rides ahead of your AI agent — searching the web, fetching pag
 
 ### `web_search`
 
-Search the web via DuckDuckGo. Returns a numbered list of sources with titles, URLs, and descriptions. No API key required.
+Search the web. Returns a numbered list of sources with titles, URLs, and descriptions. No API key required.
+
+**Providers:**
+- **DuckDuckGo** (default) — works out of the box, no configuration needed.
+- **SearXNG** (optional) — self-hosted metasearch engine. Set `SEARCH_PROVIDER=searxng` and `SEARXNG_URL=http://localhost:8080`.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -52,7 +56,36 @@ The default base URL is set to Google's Gemini endpoint and the default model is
 
 This key is only needed for the `answer` tool. The `web_search` and `fetch` tools work without it.
 
-### 3. Add to your coding agent
+### 3. Configure SearXNG (optional)
+
+To use a self-hosted SearXNG instance instead of DuckDuckGo:
+
+```bash
+export SEARCH_PROVIDER=searxng
+export SEARXNG_URL=http://localhost:8080
+```
+
+Or in your `opencode.json`:
+```json
+"env": {
+  "SEARCH_PROVIDER": "searxng",
+  "SEARXNG_URL": "http://localhost:8080",
+  "ANSWER_LLM_API_KEY": "your-key"
+}
+```
+
+**SearXNG config requirement:** Make sure `json` is listed in your SearXNG `settings.yml` under `search.formats`:
+
+```yaml
+search:
+  formats:
+    - html
+    - json
+```
+
+Without this, SearXNG returns HTTP 403 on every `/search?format=json` request. If no `SEARXNG_URL` is set, the server falls back to DuckDuckGo automatically.
+
+### 4. Add to your coding agent
 
 Replace `/path/to/outrider` with the actual path to the binary.
 
@@ -95,7 +128,9 @@ outrider-mcp/
 │   └── fetcher.go
 ├── search/              # Search provider interface and implementations
 │   ├── provider.go      # Provider interface, shared types, helpers
-│   └── duckduckgo.go    # DuckDuckGo HTML search (free, no API key)
+│   ├── duckduckgo.go    # DuckDuckGo HTML search (free, no API key)
+│   ├── searxng.go       # SearXNG JSON API search (self-hosted)
+│   └── provider_factory.go  # Provider selection from environment variables
 ├── tools/               # MCP tool definitions and handlers
 │   ├── web_search.go    # web_search tool
 │   ├── fetch.go         # fetch tool
