@@ -5,14 +5,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nethbotheju/outrider-mcp/config"
 	"github.com/nethbotheju/outrider-mcp/fetcher"
 )
 
+var testFetchConfig = config.Defaults().Fetch
+
 // TestFetcherHTMPLive fetches a real HTML page and verifies content extraction.
 func TestFetcherHTMLLive(t *testing.T) {
-	f := fetcher.NewFetcher()
+	f := fetcher.NewFetcher(testFetchConfig)
 
-	result, err := f.FetchURL(context.Background(), "https://go.dev/", 5000)
+	result, err := f.FetchURL(context.Background(), "https://go.dev/", 5000, "lean")
 	if err != nil {
 		t.Fatalf("FetchURL() returned error: %v", err)
 	}
@@ -34,9 +37,9 @@ func TestFetcherHTMLLive(t *testing.T) {
 
 // TestFetcherPlainTextLive fetches a plain-text endpoint (robots.txt).
 func TestFetcherPlainTextLive(t *testing.T) {
-	f := fetcher.NewFetcher()
+	f := fetcher.NewFetcher(testFetchConfig)
 
-	result, err := f.FetchURL(context.Background(), "https://go.dev/robots.txt", 5000)
+	result, err := f.FetchURL(context.Background(), "https://go.dev/robots.txt", 5000, "lean")
 	if err != nil {
 		t.Fatalf("FetchURL() returned error: %v", err)
 	}
@@ -54,9 +57,9 @@ func TestFetcherPlainTextLive(t *testing.T) {
 
 // TestFetcherTruncationLive verifies that maxLength truncation works on a real page.
 func TestFetcherTruncationLive(t *testing.T) {
-	f := fetcher.NewFetcher()
+	f := fetcher.NewFetcher(testFetchConfig)
 
-	result, err := f.FetchURL(context.Background(), "https://go.dev/", 500)
+	result, err := f.FetchURL(context.Background(), "https://go.dev/", 500, "lean")
 	if err != nil {
 		t.Fatalf("FetchURL() returned error: %v", err)
 	}
@@ -70,9 +73,9 @@ func TestFetcherTruncationLive(t *testing.T) {
 
 // TestFetcherInvalidURL verifies error handling for bad URLs.
 func TestFetcherInvalidURL(t *testing.T) {
-	f := fetcher.NewFetcher()
+	f := fetcher.NewFetcher(testFetchConfig)
 
-	_, err := f.FetchURL(context.Background(), "ftp://example.com/file", 5000)
+	_, err := f.FetchURL(context.Background(), "ftp://example.com/file", 5000, "lean")
 	if err == nil {
 		t.Fatal("expected error for unsupported URL scheme, got nil")
 	}
@@ -83,7 +86,7 @@ func TestFetcherInvalidURL(t *testing.T) {
 
 // TestFetcherJinaLive fetches a real HTML page via the Jina Reader API (Tier 1).
 func TestFetcherJinaLive(t *testing.T) {
-	f := fetcher.NewFetcher()
+	f := fetcher.NewFetcher(testFetchConfig)
 
 	result, err := f.FetchViaJina(context.Background(), "https://go.dev/")
 	if err != nil {
@@ -106,7 +109,7 @@ func TestFetcherJinaLive(t *testing.T) {
 
 // TestFetcherJinaInvalidURL verifies error handling when Jina receives a non-existent domain.
 func TestFetcherJinaInvalidURL(t *testing.T) {
-	f := fetcher.NewFetcher()
+	f := fetcher.NewFetcher(testFetchConfig)
 
 	_, err := f.FetchViaJina(context.Background(), "https://this-domain-does-not-exist-12345.com")
 	if err == nil {
@@ -117,11 +120,11 @@ func TestFetcherJinaInvalidURL(t *testing.T) {
 
 // TestFetcherBrowserLive fetches a real HTML page via chromedp headless browser (Tier 2).
 func TestFetcherBrowserLive(t *testing.T) {
-	if !fetcher.ChromeAvailable() {
+	f := fetcher.NewFetcher(testFetchConfig)
+
+	if !f.ChromeAvailable() {
 		t.Skip("Chrome not available, skipping browser test")
 	}
-
-	f := fetcher.NewFetcher()
 
 	result, err := f.FetchViaBrowser(context.Background(), "https://go.dev/")
 	if err != nil {
@@ -144,11 +147,11 @@ func TestFetcherBrowserLive(t *testing.T) {
 
 // TestFetcherBrowserInvalidURL verifies error handling when the browser fetches a non-existent domain.
 func TestFetcherBrowserInvalidURL(t *testing.T) {
-	if !fetcher.ChromeAvailable() {
+	f := fetcher.NewFetcher(testFetchConfig)
+
+	if !f.ChromeAvailable() {
 		t.Skip("Chrome not available, skipping browser test")
 	}
-
-	f := fetcher.NewFetcher()
 
 	_, err := f.FetchViaBrowser(context.Background(), "https://this-domain-does-not-exist-12345.com")
 	if err == nil {
@@ -159,7 +162,7 @@ func TestFetcherBrowserInvalidURL(t *testing.T) {
 
 // TestFetcherStaticLive fetches a real HTML page via static HTTP + readability (Tier 3).
 func TestFetcherStaticLive(t *testing.T) {
-	f := fetcher.NewFetcher()
+	f := fetcher.NewFetcher(testFetchConfig)
 
 	result, err := f.FetchViaStatic(context.Background(), "https://go.dev/")
 	if err != nil {
@@ -182,7 +185,7 @@ func TestFetcherStaticLive(t *testing.T) {
 
 // TestFetcherStaticPlainText fetches a plain-text endpoint (robots.txt) via static HTTP.
 func TestFetcherStaticPlainText(t *testing.T) {
-	f := fetcher.NewFetcher()
+	f := fetcher.NewFetcher(testFetchConfig)
 
 	result, err := f.FetchViaStatic(context.Background(), "https://go.dev/robots.txt")
 	if err != nil {
@@ -202,7 +205,7 @@ func TestFetcherStaticPlainText(t *testing.T) {
 
 // TestFetcherStaticInvalidURL verifies error handling when static HTTP fetches a non-existent domain.
 func TestFetcherStaticInvalidURL(t *testing.T) {
-	f := fetcher.NewFetcher()
+	f := fetcher.NewFetcher(testFetchConfig)
 
 	_, err := f.FetchViaStatic(context.Background(), "https://this-domain-does-not-exist-12345.com")
 	if err == nil {
@@ -213,9 +216,9 @@ func TestFetcherStaticInvalidURL(t *testing.T) {
 
 // TestFetcherFallbackAllFail verifies that the fallback chain returns an aggregated error when all tiers fail.
 func TestFetcherFallbackAllFail(t *testing.T) {
-	f := fetcher.NewFetcher()
+	f := fetcher.NewFetcher(testFetchConfig)
 
-	_, err := f.FetchURL(context.Background(), "https://this-domain-does-not-exist-12345.com", 5000)
+	_, err := f.FetchURL(context.Background(), "https://this-domain-does-not-exist-12345.com", 5000, "lean")
 	if err == nil {
 		t.Fatal("expected error when all tiers fail, got nil")
 	}
@@ -227,8 +230,8 @@ func TestFetcherFallbackAllFail(t *testing.T) {
 	if !strings.Contains(errMsg, "jina:") {
 		t.Errorf("expected 'jina:' in error, got: %v", err)
 	}
-	if !strings.Contains(errMsg, "static:") {
-		t.Errorf("expected 'static:' in error, got: %v", err)
+	if !strings.Contains(errMsg, "local:") {
+		t.Errorf("expected 'local:' in error, got: %v", err)
 	}
 
 	t.Logf("Fallback chain error (expected):\n%v", err)

@@ -33,7 +33,7 @@ func chromeAvailable() bool {
 	}
 }
 
-func (f *Fetcher) fetchViaBrowser(ctx context.Context, rawURL string) (*FetchResult, error) {
+func (f *Fetcher) fetchViaBrowser(ctx context.Context, rawURL string, format Format) (*FetchResult, error) {
 	allocCtx, cancel := chromedp.NewContext(ctx, chromedp.WithLogf(log.Printf))
 	defer cancel()
 
@@ -51,5 +51,5 @@ func (f *Fetcher) fetchViaBrowser(ctx context.Context, rawURL string) (*FetchRes
 		return nil, fmt.Errorf("browser: empty response from %s", rawURL)
 	}
 
-	return extractContent([]byte(htmlContent), rawURL)
+	return extractContent([]byte(htmlContent), rawURL, format)
 }

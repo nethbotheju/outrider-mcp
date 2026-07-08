@@ -26,9 +26,21 @@ func NewDuckDuckGoProvider() *DuckDuckGoProvider {
 // Name returns the provider identifier.
 func (p *DuckDuckGoProvider) Name() string { return "DuckDuckGo" }
 
+// DefaultCount is the number of results returned when count is not specified.
+func (p *DuckDuckGoProvider) DefaultCount() int { return 10 }
+
+// MaxCount is the hard upper bound for result count.
+func (p *DuckDuckGoProvider) MaxCount() int { return 20 }
+
+// SupportsCategories reports whether this provider supports category filtering.
+func (p *DuckDuckGoProvider) SupportsCategories() bool { return false }
+
+// CategoryDescription is empty for DuckDuckGo.
+func (p *DuckDuckGoProvider) CategoryDescription() string { return "" }
+
 // Search queries DuckDuckGo HTML and parses the result page.
-func (p *DuckDuckGoProvider) Search(ctx context.Context, query string, count int) ([]SearchResult, error) {
-	count = clamp(count, 1, 20)
+func (p *DuckDuckGoProvider) Search(ctx context.Context, query string, count int, category string) ([]SearchResult, error) {
+	count = resolveCount(count, p.DefaultCount(), p.MaxCount())
 
 	searchURL := "https://html.duckduckgo.com/html/?q=" + url.QueryEscape(query)
 

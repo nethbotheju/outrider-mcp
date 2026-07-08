@@ -4,29 +4,62 @@ import (
 	"context"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 	"time"
+
+	"github.com/nethbotheju/outrider-mcp/config"
 )
+
+// Format controls how fetched content is sanitized.
+type Format string
+
+const (
+	// FormatLean strips link URLs and images for minimal token usage.
+	FormatLean Format = "lean"
+	// FormatMarkdown preserves full links and images.
+	FormatMarkdown Format = "markdown"
+)
+
+// ParseFormat converts a string to a Format, defaulting to lean.
+func ParseFormat(s string) Format {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "markdown":
+		return FormatMarkdown
+	default:
+		return FormatLean
+	}
+}
 
 // FetchResult holds the extracted content from a fetched URL.
 type FetchResult struct {
 	Content string
 	URL     string
 	Title   string
+	Format  Format
 }
 
-// Fetcher downloads URLs and extracts readable Markdown content using a 3-tier strategy:
+// Fetcher downloads URLs and extracts readable Markdown content using a tiered strategy:
 // Tier 1: Jina Reader API (best quality, handles JS)
-// Tier 2: chromedp headless browser + readability (good quality, handles JS)
-// Tier 3: static HTTP + readability (decent quality, no JS rendering)
+// Tier 2: chromedp headless browser (good quality, handles JS)
+// Tier 3: static HTTP + readability (no JS rendering)
 type Fetcher struct {
-	jinaAPIKey string
+	jinaEnabled    bool
+	jinaAPIKey     string
+	browserEnabled bool
+	timeout        time.Duration
 }
 
-func NewFetcher() *Fetcher {
+// NewFetcher creates a Fetcher from configuration.
+func NewFetcher(cfg config.FetchConfig) *Fetcher {
+	timeout := time.Duration(cfg.TimeoutMs) * time.Millisecond
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
 	return &Fetcher{
-		jinaAPIKey: os.Getenv("JINA_API_KEY"),
+		jinaEnabled:    cfg.Jina.Enabled,
+		jinaAPIKey:     cfg.Jina.APIKey,
+		browserEnabled: cfg.Browser.Enabled,
+		timeout:        timeout,
 	}
 }
 
@@ -34,9 +67,11 @@ func NewFetcher() *Fetcher {
 const maxBodyBytes = 10 << 20
 
 // FetchURL fetches rawURL and returns its content as Markdown, truncated to maxLength.
-func (f *Fetcher) FetchURL(ctx context.Context, rawURL string, maxLength int) (*FetchResult, error) {
+func (f *Fetcher) FetchURL(ctx context.Context, rawURL string, maxLength int, format string) (*FetchResult, error) {
+	fmtVal := ParseFormat(format)
+
 	if maxLength <= 0 {
-		maxLength = 50000
+		maxLength = 10000
 	}
 
 	parsedURL, err := url.Parse(rawURL)
@@ -47,7 +82,7 @@ func (f *Fetcher) FetchURL(ctx context.Context, rawURL string, maxLength int) (*
 		return nil, fmt.Errorf("unsupported URL scheme: %s (only http and https are supported)", parsedURL.Scheme)
 	}
 
-	result, err := f.fetchWithFallback(ctx, rawURL)
+	result, err := f.fetchWithFallback(ctx, rawURL, fmtVal)
 	if err != nil {
 		return nil, err
 	}
@@ -61,57 +96,57 @@ func (f *Fetcher) FetchURL(ctx context.Context, rawURL string, maxLength int) (*
 }
 
 // fetchWithFallback tries each tier in order, falling through on failure.
-func (f *Fetcher) fetchWithFallback(ctx context.Context, rawURL string) (*FetchResult, error) {
+func (f *Fetcher) fetchWithFallback(ctx context.Context, rawURL string, format Format) (*FetchResult, error) {
 	var errs []string
 
-	// Tier 1: Jina Reader
-	jinaCtx, jinaCancel := context.WithTimeout(ctx, 15*time.Second)
-	defer jinaCancel()
-
-	result, err := f.fetchViaJina(jinaCtx, rawURL)
-	if err == nil {
-		return result, nil
+	if f.jinaEnabled {
+		jinaCtx, jinaCancel := context.WithTimeout(ctx, f.timeout)
+		defer jinaCancel()
+		result, err := f.fetchViaJina(jinaCtx, rawURL, format)
+		if err == nil {
+			return result, nil
+		}
+		errs = append(errs, fmt.Sprintf("jina: %v", err))
 	}
-	errs = append(errs, fmt.Sprintf("jina: %v", err))
 
-	// Tier 2: chromedp (only if Chrome is available on the system)
-	if chromeAvailable() {
+	if f.browserEnabled && chromeAvailable() {
 		browserCtx, browserCancel := context.WithTimeout(ctx, 30*time.Second)
 		defer browserCancel()
-
-		result, err = f.fetchViaBrowser(browserCtx, rawURL)
+		result, err := f.fetchViaBrowser(browserCtx, rawURL, format)
 		if err == nil {
 			return result, nil
 		}
 		errs = append(errs, fmt.Sprintf("browser: %v", err))
 	}
 
-	// Tier 3: static HTTP + readability
-	staticCtx, staticCancel := context.WithTimeout(ctx, 15*time.Second)
+	staticCtx, staticCancel := context.WithTimeout(ctx, f.timeout)
 	defer staticCancel()
-
-	static := newHTTPStaticFetcher()
-	result, err = static.fetch(staticCtx, rawURL)
+	static := newHTTPStaticFetcher(f.timeout)
+	result, err := static.fetch(staticCtx, rawURL, format)
 	if err == nil {
 		return result, nil
 	}
-	errs = append(errs, fmt.Sprintf("static: %v", err))
+	errs = append(errs, fmt.Sprintf("local: %v", err))
 
 	return nil, fmt.Errorf("all tiers failed:\n  - %s", strings.Join(errs, "\n  - "))
 }
 
+// FetchViaJina exposes the Jina Reader tier for tests.
 func (f *Fetcher) FetchViaJina(ctx context.Context, rawURL string) (*FetchResult, error) {
-	return f.fetchViaJina(ctx, rawURL)
+	return f.fetchViaJina(ctx, rawURL, FormatLean)
 }
 
+// FetchViaBrowser exposes the headless-browser tier for tests.
 func (f *Fetcher) FetchViaBrowser(ctx context.Context, rawURL string) (*FetchResult, error) {
-	return f.fetchViaBrowser(ctx, rawURL)
+	return f.fetchViaBrowser(ctx, rawURL, FormatLean)
 }
 
+// FetchViaStatic exposes the local/static HTTP tier for tests.
 func (f *Fetcher) FetchViaStatic(ctx context.Context, rawURL string) (*FetchResult, error) {
-	return newHTTPStaticFetcher().fetch(ctx, rawURL)
+	return newHTTPStaticFetcher(f.timeout).fetch(ctx, rawURL, FormatLean)
 }
 
-func ChromeAvailable() bool {
+// ChromeAvailable reports whether a Chrome/Chromium binary is available.
+func (f *Fetcher) ChromeAvailable() bool {
 	return chromeAvailable()
 }

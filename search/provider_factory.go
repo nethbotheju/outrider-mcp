@@ -5,41 +5,58 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/nethbotheju/outrider-mcp/config"
 )
 
-type ProviderName string
-
-const (
-	ProviderDuckDuckGo ProviderName = "duckduckgo"
-	ProviderSearXNG    ProviderName = "searxng"
-)
-
-// NewProviderFromEnv returns the search provider configured via environment
+// NewProviderFromEnv builds a provider using only environment variables.
 func NewProviderFromEnv() Provider {
+	// The config package's env override logic is unexported, so replicate the
+	// minimal provider-relevant parts here for backward compatibility.
 	providerName := strings.ToLower(strings.TrimSpace(os.Getenv("SEARCH_PROVIDER")))
-	if providerName == "" {
-		providerName = string(ProviderDuckDuckGo)
+	searxngURL := strings.TrimRight(strings.TrimSpace(os.Getenv("SEARXNG_URL")), "/")
+	searxngKey := os.Getenv("SEARXNG_API_KEY")
+
+	if providerName == "" && searxngURL != "" {
+		providerName = "searxng"
 	}
 
-	switch ProviderName(providerName) {
-	case ProviderSearXNG:
-		baseURL := strings.TrimRight(strings.TrimSpace(os.Getenv("SEARXNG_URL")), "/")
+	return newProvider(providerName, searxngURL, searxngKey)
+}
 
+// NewProviderFromConfig builds a provider from the loaded configuration.
+func NewProviderFromConfig(cfg *config.Config) Provider {
+	providerName := strings.ToLower(strings.TrimSpace(cfg.Provider))
+	searxngURL := ""
+	searxngKey := ""
+	if cfg.SearXNG != nil {
+		searxngURL = cfg.SearXNG.BaseURL
+		searxngKey = cfg.SearXNG.APIKey
+	}
+	return newProvider(providerName, searxngURL, searxngKey)
+}
+
+func newProvider(providerName, searxngURL, searxngKey string) Provider {
+	if providerName == "" {
+		providerName = "duckduckgo"
+	}
+
+	switch providerName {
+	case "searxng":
+		baseURL := strings.TrimRight(strings.TrimSpace(searxngURL), "/")
 		if baseURL == "" {
 			log.Printf("[search] Warning: SEARCH_PROVIDER=searxng but SEARXNG_URL is not set; falling back to DuckDuckGo")
 			return NewDuckDuckGoProvider()
 		}
-
 		if _, err := url.ParseRequestURI(baseURL); err != nil {
 			log.Printf("[search] Warning: SEARXNG_URL=%q is not a valid URL (%v); falling back to DuckDuckGo", baseURL, err)
 			return NewDuckDuckGoProvider()
 		}
-
 		log.Printf("[search] Using SearXNG at %s", baseURL)
-		return NewSearXNGProvider(baseURL)
+		return NewSearXNGProvider(baseURL, searxngKey)
 
 	default:
-		if providerName != "" {
+		if providerName != "duckduckgo" {
 			log.Printf("[search] Unknown SEARCH_PROVIDER=%q; using DuckDuckGo", providerName)
 		}
 		return NewDuckDuckGoProvider()

@@ -18,7 +18,7 @@ func TestDuckDuckGoSearchLive(t *testing.T) {
 		t.Fatalf("expected provider name 'DuckDuckGo', got %q", provider.Name())
 	}
 
-	results, err := provider.Search(context.Background(), "golang testing package", 5)
+	results, err := provider.Search(context.Background(), "golang testing package", 5, "")
 	if err != nil {
 		t.Fatalf("Search() returned error: %v", err)
 	}
@@ -50,7 +50,7 @@ func TestDuckDuckGoSearchLive(t *testing.T) {
 func TestDuckDuckGoSearchCountRespected(t *testing.T) {
 	provider := search.NewDuckDuckGoProvider()
 
-	results, err := provider.Search(context.Background(), "golang", 3)
+	results, err := provider.Search(context.Background(), "golang", 3, "")
 	if err != nil {
 		t.Fatalf("Search() returned error: %v", err)
 	}
@@ -69,7 +69,7 @@ func TestDuckDuckGoSearchCountRespected(t *testing.T) {
 func TestFormatResultsLive(t *testing.T) {
 	provider := search.NewDuckDuckGoProvider()
 
-	results, err := provider.Search(context.Background(), "golang", 2)
+	results, err := provider.Search(context.Background(), "golang", 2, "")
 	if err != nil {
 		t.Fatalf("Search() returned error: %v", err)
 	}
