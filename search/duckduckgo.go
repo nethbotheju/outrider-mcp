@@ -87,7 +87,7 @@ func parseDuckDuckGoResults(html []byte, count int) ([]SearchResult, error) {
 
 		results = append(results, SearchResult{
 			Title:       title,
-			URL:          realURL,
+			URL:         realURL,
 			Description: snippet,
 		})
 	})

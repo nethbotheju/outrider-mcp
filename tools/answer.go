@@ -9,7 +9,7 @@ import (
 )
 
 type AnswerInput struct {
-	Question string `json:"question" jsonschema:"required,The question to answer by searching the web"`
+	Question string `json:"question" jsonschema:"The question to answer by searching the web"`
 }
 
 type AnswerOutput struct {

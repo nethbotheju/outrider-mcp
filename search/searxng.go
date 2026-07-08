@@ -67,9 +67,9 @@ func (p *SearXNGProvider) Search(ctx context.Context, query string, count int) (
 // searxngResponse represents the JSON structure returned by SearXNG's /search endpoint.
 type searxngResponse struct {
 	Results []struct {
-		Title    string `json:"title"`
-		URL      string `json:"url"`
-		Content  string `json:"content"`
+		Title   string `json:"title"`
+		URL     string `json:"url"`
+		Content string `json:"content"`
 	} `json:"results"`
 }
 

@@ -10,7 +10,7 @@ import (
 
 // WebSearchInput defines the parameters for the web_search tool.
 type WebSearchInput struct {
-	Query string `json:"query" jsonschema:"required,The search query string"`
+	Query string `json:"query" jsonschema:"The search query string"`
 	Count int    `json:"count,omitempty" jsonschema:"Number of results to return (default 10, max 20)"`
 }
 

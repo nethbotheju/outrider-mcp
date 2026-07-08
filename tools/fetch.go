@@ -10,7 +10,7 @@ import (
 
 // FetchInput defines the parameters for the fetch tool.
 type FetchInput struct {
-	URL       string `json:"url" jsonschema:"required,The URL to fetch content from"`
+	URL       string `json:"url" jsonschema:"The URL to fetch content from"`
 	MaxLength int    `json:"maxLength,omitempty" jsonschema:"Maximum content length in characters (default 50000)"`
 }
 
