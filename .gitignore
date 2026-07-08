@@ -1,6 +1,9 @@
 # Environment variables
 .env
 
+# SearXNG config directory
+searxng-config/
+
 # Compiled binary
 web-search-mcp
 outrider

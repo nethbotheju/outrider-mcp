@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	provider := search.NewDuckDuckGoProvider()
+	provider := search.NewProviderFromEnv()
 	fetcher := fetcher.NewFetcher()
 
 	log.Println("Starting outrider server...")
