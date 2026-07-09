@@ -11,11 +11,12 @@ Search the web. Returns a numbered list of sources with titles, URLs, descriptio
 **Providers:**
 - **DuckDuckGo** (default) — works out of the box, no configuration needed.
 - **SearXNG** (optional) — self-hosted metasearch engine. Supports category filtering and richer metadata.
+- **Degoog** (optional) — self-hosted search aggregator. Returns aggregated web results from multiple engines. No API key required.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `query` | string | Yes | The search query |
-| `count` | int | No | Number of results. DuckDuckGo: default 10, max 20. SearXNG: default 5, max 10. |
+| `count` | int | No | Number of results. DuckDuckGo: default 10, max 20. SearXNG: default 5, max 10. Degoog: default 10, max 20. |
 | `category` | string | No | **SearXNG only.** `general` (default), `science`, `news`, or `it`. |
 
 ### `web_fetch`
@@ -67,6 +68,9 @@ Example `config.json` (all fields shown; most are optional):
   "searxng": {
     "baseUrl": "http://localhost:8080",
     "apiKey": ""
+  },
+  "degoog": {
+    "baseUrl": "http://localhost:14444"
   },
   "fetch": {
     "jina": {
@@ -134,9 +138,10 @@ These two toggles do different things:
 | Variable | Maps to | Description |
 |----------|---------|-------------|
 | `OUTRIDER_CONFIG` | — | Path to the config file |
-| `SEARCH_PROVIDER` | `provider` | `duckduckgo` or `searxng` |
+| `SEARCH_PROVIDER` | `provider` | `duckduckgo` or `searxng` or `degoog` |
 | `SEARXNG_URL` | `searxng.baseUrl` | SearXNG base URL |
 | `SEARXNG_API_KEY` | `searxng.apiKey` | SearXNG Bearer token |
+| `DEGOOG_URL` | `degoog.baseUrl` | Degoog base URL |
 | `JINA_ENABLED` | `fetch.jina.enabled` | `true` / `false` |
 | `JINA_API_KEY` | `fetch.jina.apiKey` | Jina Reader API key |
 | `FETCH_MAX_LENGTH` | `fetch.maxLength` | Default fetch max length |
@@ -187,6 +192,28 @@ search:
 ```
 
 Without this, SearXNG returns HTTP 403 on every `/search?format=json` request. If SearXNG is selected but not reachable, the server falls back to DuckDuckGo automatically.
+
+### 3b. Configure Degoog (optional)
+
+To use a self-hosted [Degoog](https://degoog-org.github.io/docs/) instance instead of DuckDuckGo:
+
+```json
+{
+  "provider": "degoog",
+  "degoog": {
+    "baseUrl": "http://localhost:14444"
+  }
+}
+```
+
+Or with environment variables:
+
+```bash
+export SEARCH_PROVIDER=degoog
+export DEGOOG_URL=http://localhost:14444
+```
+
+Degoog runs on port `4444` by default. The provider queries its `/api/search` JSON endpoint, which needs no authentication on a local instance. If Degoog is selected but not reachable, the server falls back to DuckDuckGo automatically.
 
 ### 4. Add to your coding agent
 

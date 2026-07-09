@@ -20,6 +20,11 @@ type SearXNGConfig struct {
 	APIKey  string `json:"apiKey,omitempty"`
 }
 
+// DegoogConfig holds provider-specific settings for a Degoog instance.
+type DegoogConfig struct {
+	BaseURL string `json:"baseUrl"`
+}
+
 // JinaConfig controls the Jina Reader fetch tier.
 type JinaConfig struct {
 	Enabled bool   `json:"enabled"`
@@ -68,6 +73,7 @@ type ToolsConfig struct {
 type Config struct {
 	Provider string         `json:"provider"`
 	SearXNG  *SearXNGConfig `json:"searxng,omitempty"`
+	Degoog   *DegoogConfig  `json:"degoog,omitempty"`
 	Fetch    FetchConfig    `json:"fetch"`
 	Answer   AnswerConfig   `json:"answer"`
 	Tools    ToolsConfig    `json:"tools"`
@@ -120,6 +126,9 @@ func Load() (*Config, error) {
 			if cfg.Provider == "" && cfg.SearXNG != nil && cfg.SearXNG.BaseURL != "" {
 				cfg.Provider = "searxng"
 			}
+			if cfg.Provider == "" && cfg.Degoog != nil && cfg.Degoog.BaseURL != "" {
+				cfg.Provider = "degoog"
+			}
 		} else if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("reading config file %q: %w", path, err)
 		}
@@ -157,6 +166,8 @@ func applyEnvOverrides(cfg *Config) {
 		cfg.Provider = strings.ToLower(strings.TrimSpace(v))
 	} else if os.Getenv("SEARXNG_URL") != "" {
 		cfg.Provider = "searxng"
+	} else if os.Getenv("DEGOOG_URL") != "" {
+		cfg.Provider = "degoog"
 	}
 
 	if cfg.SearXNG == nil {
@@ -167,6 +178,13 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v, ok := os.LookupEnv("SEARXNG_API_KEY"); ok {
 		cfg.SearXNG.APIKey = v
+	}
+
+	if cfg.Degoog == nil {
+		cfg.Degoog = &DegoogConfig{}
+	}
+	if v := os.Getenv("DEGOOG_URL"); v != "" {
+		cfg.Degoog.BaseURL = strings.TrimRight(strings.TrimSpace(v), "/")
 	}
 
 	if v, ok := lookupBool("JINA_ENABLED"); ok {
