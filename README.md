@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="https://cdn.simpleicons.org/modelcontextprotocol/6f42c1" width="110" alt="MCP" />
+
 # Outrider
 
 **The web-search MCP server that scouts ahead of your AI agent.**
@@ -11,8 +13,6 @@
 [![platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square)](https://github.com/nethbotheju/web-search-mcp/releases)
 
 </div>
-
----
 
 Outrider gives any [Model Context Protocol](https://modelcontextprotocol.io) client — **Claude Desktop, Cursor, OpenCode**, and the rest — three fast, dependable tools for working with the live web: **search**, **fetch**, and a bounded **question-answering** agent.
 
@@ -63,9 +63,9 @@ It ships as a **single static binary**. No Go toolchain at runtime, no `node_mod
 If something doesn't work, [open an issue](https://github.com/nethbotheju/web-search-mcp/issues).
 
 <details>
-<summary><b>Using Cursor, OpenCode, or the MCP Inspector?</b></summary>
+<summary><b>Using Cursor, Claude Code, Codex, or OpenCode?</b></summary>
 
-See the [Client integration](./docs/configuration.md#client-integration) section for Cursor, OpenCode, and Inspector snippets.
+See the [Client integration](./docs/configuration.md#client-integration) guide for setup snippets.
 
 </details>
 
@@ -133,4 +133,6 @@ Pull requests are welcome — from humans and coding agents alike.
 
 ## License
 
-[MIT](./LICENSE)
+This project is licensed under the [MIT License](./LICENSE).
+
+Copyright © 2026 nethbotheju.
