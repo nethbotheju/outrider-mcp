@@ -1,6 +1,9 @@
 <div align="center">
 
-<img src="https://cdn.simpleicons.org/modelcontextprotocol/6f42c1" width="110" alt="MCP" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://cdn.simpleicons.org/modelcontextprotocol/white">
+  <img src="https://cdn.simpleicons.org/modelcontextprotocol" width="110" alt="MCP" />
+</picture>
 
 # Outrider
 
