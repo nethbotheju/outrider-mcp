@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
-func (f *Fetcher) fetchViaJina(ctx context.Context, rawURL string) (*FetchResult, error) {
+func (f *Fetcher) fetchViaJina(ctx context.Context, rawURL string, format Format) (*FetchResult, error) {
 	jinaURL := "https://r.jina.ai/" + rawURL
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, jinaURL, nil)
@@ -19,6 +20,10 @@ func (f *Fetcher) fetchViaJina(ctx context.Context, rawURL string) (*FetchResult
 	req.Header.Set("Accept", "text/plain")
 	if f.jinaAPIKey != "" {
 		req.Header.Set("Authorization", "Bearer "+f.jinaAPIKey)
+	}
+	if format == FormatLean {
+		req.Header.Set("X-Retain-Links", "text")
+		req.Header.Set("X-Retain-Images", "none")
 	}
 
 	resp, err := http.DefaultClient.Do(req)
@@ -38,11 +43,15 @@ func (f *Fetcher) fetchViaJina(ctx context.Context, rawURL string) (*FetchResult
 	}
 
 	title, content := parseJinaResponse(string(body))
+	if strings.TrimSpace(content) == "" {
+		return nil, fmt.Errorf("jina: returned empty content")
+	}
 
 	return &FetchResult{
 		Content: content,
 		URL:     rawURL,
 		Title:   title,
+		Format:  format,
 	}, nil
 }
 
@@ -56,7 +65,7 @@ func (f *Fetcher) fetchViaJina(ctx context.Context, rawURL string) (*FetchResult
 func parseJinaResponse(raw string) (title string, content string) {
 	title, content = "", raw
 
-	lines := strings.SplitN(raw, "\n", -1)
+	lines := strings.Split(raw, "\n")
 
 	var contentStartIdx int
 	for i, line := range lines {
@@ -74,5 +83,21 @@ func parseJinaResponse(raw string) (title string, content string) {
 		content = strings.TrimSpace(strings.Join(lines[contentStartIdx:], "\n"))
 	}
 
+	if title == "" {
+		if u, err := url.Parse(extractSourceURL(raw)); err == nil {
+			title = u.Host
+		}
+	}
+
 	return title, content
+}
+
+func extractSourceURL(raw string) string {
+	for _, line := range strings.Split(raw, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "URL Source:") {
+			return strings.TrimSpace(strings.TrimPrefix(trimmed, "URL Source:"))
+		}
+	}
+	return ""
 }

@@ -13,12 +13,23 @@ type SearchResult struct {
 	Title       string
 	URL         string
 	Description string
+	// Optional rich metadata used mainly by SearXNG.
+	PublishedDate string
+	Source        string
+	Journal       string
+	DOI           string
+	PDFURL        string
+	Authors       []string
 }
 
 // Provider is the interface that every search engine must implement.
 type Provider interface {
 	Name() string
-	Search(ctx context.Context, query string, count int) ([]SearchResult, error)
+	DefaultCount() int
+	MaxCount() int
+	SupportsCategories() bool
+	CategoryDescription() string
+	Search(ctx context.Context, query string, count int, category string) ([]SearchResult, error)
 }
 
 // FormatResults renders search results as numbered text for LLM consumption.
@@ -29,21 +40,41 @@ func FormatResults(results []SearchResult) string {
 
 	var buf strings.Builder
 	for i, r := range results {
-		fmt.Fprintf(&buf, "%d. %s\n   URL: %s\n   %s\n\n", i+1, r.Title, r.URL, r.Description)
+		fmt.Fprintf(&buf, "%d. %s\n   URL: %s", i+1, r.Title, r.URL)
+		if r.Description != "" {
+			fmt.Fprintf(&buf, "\n   %s", r.Description)
+		}
+		if r.PublishedDate != "" {
+			date := r.PublishedDate
+			if len(date) > 10 {
+				date = date[:10]
+			}
+			fmt.Fprintf(&buf, "\n   Published: %s", date)
+		}
+		if r.Source != "" {
+			fmt.Fprintf(&buf, "\n   Source: %s", r.Source)
+		}
+		if r.Journal != "" {
+			fmt.Fprintf(&buf, "\n   Journal: %s", r.Journal)
+		}
+		if r.DOI != "" {
+			fmt.Fprintf(&buf, "\n   DOI: %s", r.DOI)
+		}
+		if len(r.Authors) > 0 {
+			fmt.Fprintf(&buf, "\n   Authors: %s", strings.Join(r.Authors, ", "))
+		}
+		if r.PDFURL != "" {
+			fmt.Fprintf(&buf, "\n   PDF: %s", r.PDFURL)
+		}
+		buf.WriteString("\n\n")
 	}
-	return buf.String()
+	return strings.TrimRight(buf.String(), "\n")
 }
 
-// DefaultCount is the number of results returned when count is not specified.
-const DefaultCount = 10
-
-// clamp restricts n to the inclusive range [min, max].
-func clamp(n, min, max int) int {
+// resolveCount clamps n to a valid count for the provider.
+func resolveCount(n, def, max int) int {
 	if n <= 0 {
-		n = DefaultCount
-	}
-	if n < min {
-		return min
+		return def
 	}
 	if n > max {
 		return max
