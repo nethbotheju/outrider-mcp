@@ -12,6 +12,8 @@ import (
 	"github.com/nethbotheju/outrider-mcp/tools"
 )
 
+var version = "dev" // overridden at release via -ldflags "-X main.version=..."
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -27,7 +29,7 @@ func main() {
 	server := mcp.NewServer(
 		&mcp.Implementation{
 			Name:    "outrider",
-			Version: "1.0.0",
+			Version: version,
 		},
 		nil,
 	)
