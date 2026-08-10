@@ -1,335 +1,136 @@
+<div align="center">
+
 # Outrider
 
-MCP server that rides ahead of your AI agent — searching the web, fetching pages, and extracting clean content. Ships as a single binary -- no Go installation, no `node_modules`, no runtime dependencies.
+**The web-search MCP server that scouts ahead of your AI agent.**
+
+[![release](https://img.shields.io/github/v/release/nethbotheju/web-search-mcp?style=flat-square&label=latest%20release)](https://github.com/nethbotheju/web-search-mcp/releases)
+[![license](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](./LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white&style=flat-square)](https://go.dev)
+[![MCP](https://img.shields.io/badge/MCP-server-6f42c1?style=flat-square)](https://modelcontextprotocol.io)
+[![platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey?style=flat-square)](https://github.com/nethbotheju/web-search-mcp/releases)
+
+</div>
+
+---
+
+Outrider gives any [Model Context Protocol](https://modelcontextprotocol.io) client — **Claude Desktop, Cursor, OpenCode**, and the rest — three fast, dependable tools for working with the live web: **search**, **fetch**, and a bounded **question-answering** agent.
+
+It ships as a **single static binary**. No Go toolchain at runtime, no `node_modules`, no Python, and **no API keys to get started**.
+
+> Works the moment you download it. DuckDuckGo search is built in by default — just run the binary.
+
+## Why Outrider
+
+- **Zero-config by default** — search works out of the box. No key, no signup, no billing.
+- **One static binary** — drop it anywhere and run it. Cross-compiled for macOS, Linux, Windows, and ARM.
+- **Pages actually load** — a three-tier fetcher tries the Jina Reader API, then a headless browser, then local extraction, so you get clean Markdown from real-world pages.
+- **Research without context bloat** — `web_answer` runs a small side-agent that searches and reads only what's needed, then returns a concise answer with sources.
+- **Private & self-hostable search** — swap in your own [SearXNG](https://searxng.org) or [Degoog](https://degoog-org.github.io/docs/) instance for richer results, metadata, and no rate limits.
+- **Tunable tool surface** — enable or disable each tool, and point the answer agent at any OpenAI-compatible model.
+
+## How it compares
+
+| | **Outrider** | Most web-search MCPs |
+|---|---|---|
+| Runtime | One static binary | Node / Python + deps |
+| Default search | DuckDuckGo — no API key | Often requires Brave / Tavily / Serper key |
+| Page fetching | 3-tier (Jina → browser → local) | Usually a single method |
+| Research agent | Bounded side-agent (`web_answer`) | Uncommon |
+| Private search | SearXNG / Degoog | Uncommon |
+| Distribution | Prebuilt binaries, 6 targets | `npx` / `pip` |
+
+## Quick start
+
+**1. Download** the binary for your platform from the [Releases](https://github.com/nethbotheju/web-search-mcp/releases) page and make it executable.
+
+**2. Add it to your client.** For **Claude Desktop**, open `claude_desktop_config.json` (*Settings → Developer → Edit Config*):
+
+```json
+{
+  "mcpServers": {
+    "outrider": {
+      "command": "/absolute/path/to/outrider"
+    }
+  }
+}
+```
+
+**3. Restart your client.** You now have `web_search` and `web_fetch`. No further configuration required.
+
+> Want `web_answer`, a self-hosted search engine, or fine-grained tuning? See **[Configuration →](./docs/configuration.md)**.
+
+If something doesn't work, [open an issue](https://github.com/nethbotheju/web-search-mcp/issues).
+
+<details>
+<summary><b>Using Cursor, OpenCode, or the MCP Inspector?</b></summary>
+
+See the [Client integration](./docs/configuration.md#client-integration) section for Cursor, OpenCode, and Inspector snippets.
+
+</details>
 
 ## Tools
 
-### `web_search`
+| Tool | What it does |
+|---|---|
+| **`web_search`** | Search the web. Returns numbered sources with titles, URLs, and descriptions. With SearXNG, also returns published date, source, journal, DOI, PDF link, and authors. |
+| **`web_fetch`** | Fetch a URL and return clean Markdown. Three-tier: Jina Reader → headless browser → local extraction. `lean` mode strips links and images to save tokens. |
+| **`web_answer`** | Answer a question from the web using a bounded side-agent. Pass a `url` to read a specific page, or omit it to let the agent search and fetch. Returns a concise answer with sources — and keeps your main context window clean. |
 
-Search the web. Returns a numbered list of sources with titles, URLs, descriptions, and (with SearXNG) optional metadata such as published date, source, journal, DOI, PDF link, and authors. No API key required.
+<details>
+<summary><b>Parameters</b></summary>
 
-**Providers:**
-- **DuckDuckGo** (default) — works out of the box, no configuration needed.
-- **SearXNG** (optional) — self-hosted metasearch engine. Supports category filtering and richer metadata.
-- **Degoog** (optional) — self-hosted search aggregator. Returns aggregated web results from multiple engines. No API key required.
+**`web_search`**
+- `query` *(string, required)* — the search query
+- `count` *(int)* — number of results (DuckDuckGo/Degoog: default 10, max 20 · SearXNG: default 5, max 10)
+- `category` *(string)* — **SearXNG only:** `general` (default), `science`, `news`, `it`
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `query` | string | Yes | The search query |
-| `count` | int | No | Number of results. DuckDuckGo: default 10, max 20. SearXNG: default 5, max 10. Degoog: default 10, max 20. |
-| `category` | string | No | **SearXNG only.** `general` (default), `science`, `news`, or `it`. |
+**`web_fetch`**
+- `url` *(string, required)* — the URL to fetch
+- `format` *(string)* — `lean` (default, strips links & images) or `markdown` (full)
+- `maxLength` *(int)* — max characters, default `10000`, max `50000`
 
-### `web_fetch`
+**`web_answer`**
+- `question` *(string, required)* — the question to answer
+- `url` *(string)* — a specific page to read and answer from. Omit to search the web.
 
-Fetch a web page and return its content as clean Markdown. Tries the Jina Reader API first, then a headless browser (if enabled), then local readability extraction.
+</details>
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `url` | string | Yes | The URL to fetch |
-| `format` | string | No | `lean` (default) strips link URLs and images for minimal tokens. `markdown` preserves full links and images. |
-| `maxLength` | int | No | Max content length in characters. Default 10000, max 50000. |
+## Search providers
 
-### `web_answer`
+| Provider | Setup | Notes |
+|---|---|---|
+| **DuckDuckGo** | None — default | Works out of the box. |
+| **SearXNG** | Self-host | Category filtering + rich metadata. Falls back to DuckDuckGo if unreachable. |
+| **Degoog** | Self-host | Aggregated results from multiple engines, no API key. Falls back to DuckDuckGo if unreachable. |
 
-Answer a question from the web **without flooding the main context window**. Pass a `question` and optionally a `url`. If a URL is given, the page is read and answered directly. If no URL is given, a bounded side-agent loop searches and fetches only the most relevant pages, then returns a concise answer with sources. Requires a configured side LLM.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `question` | string | Yes | The question to answer |
-| `url` | string | No | Optional specific URL to read and answer from. Omit to search the web. |
-
-When `web_answer` is enabled, prefer it over manually calling `web_search` + `web_fetch` for factual questions.
-
-## Setup
-
-### 1. Download the binary
-
-Download the latest release for your platform from the [Releases](../../releases) page.
-
-### 2. Configure Outrider
-
-Outrider can be configured with a JSON config file, environment variables, or both. **Environment variables override config file values.**
-
-#### Config file
-
-Outrider looks for a config file in this order:
-
-1. Path from the `OUTRIDER_CONFIG` environment variable
-2. `~/.config/outrider/config.json`
-3. `./outrider.json`
-
-If the file is missing, sensible defaults are used.
-
-Example `config.json` (all fields shown; most are optional):
-
-```json
-{
-  "provider": "searxng",
-  "searxng": {
-    "baseUrl": "http://localhost:8080",
-    "apiKey": ""
-  },
-  "degoog": {
-    "baseUrl": "http://localhost:14444"
-  },
-  "fetch": {
-    "jina": {
-      "enabled": true,
-      "apiKey": ""
-    },
-    "maxLength": 10000,
-    "timeoutMs": 30000,
-    "browser": {
-      "enabled": true
-    }
-  },
-  "answer": {
-    "enabled": true,
-    "baseUrl": "http://localhost:11434/v1",
-    "apiKey": "ollama",
-    "model": "llama3.1:8b",
-    "maxTokens": 800,
-    "temperature": 0,
-    "maxTurns": 4,
-    "maxSearches": 2,
-    "maxFetches": 2
-  },
-  "tools": {
-    "web_search": { "enabled": true },
-    "web_fetch": { "enabled": true },
-    "web_answer": { "enabled": true }
-  }
-}
-```
-
-#### Defaults
-
-If a field is omitted, these defaults are used:
-
-| Field | Default | Notes |
-|-------|---------|-------|
-| `provider` | `duckduckgo` | Switches to `searxng` automatically if `searxng.baseUrl` is set. |
-| `searxng` | unset | Only used when `provider` is `searxng`. |
-| `fetch.jina.enabled` | `true` | Jina Reader is tried first. |
-| `fetch.maxLength` | `10000` | Default fetch length. Clamped to max `50000`. |
-| `fetch.timeoutMs` | `30000` | HTTP timeout for Jina and local fetch. |
-| `fetch.browser.enabled` | `true` | Headless Chrome fallback. |
-| `answer.enabled` | `false` | Must be `true` for `web_answer` to work. |
-| `answer.maxTokens` | `800` | Applied to final-answer LLM calls. |
-| `answer.temperature` | `0` | Applied to all answer LLM calls. |
-| `answer.maxTurns` | `4` | Max agent-loop turns when no URL is given. |
-| `answer.maxSearches` | `2` | Max `web_search` calls per answer. |
-| `answer.maxFetches` | `2` | Max `web_fetch` calls per answer. |
-| `tools.web_search.enabled` | `true` | |
-| `tools.web_fetch.enabled` | `true` | |
-| `tools.web_answer.enabled` | `false` | |
-
-#### `answer.enabled` vs `tools.web_answer.enabled`
-
-These two toggles do different things:
-
-- `answer.enabled` — turns the **side LLM** on or off. When `true`, the model settings (`baseUrl`, `apiKey`, `model`, ...) must also be valid.
-- `tools.web_answer.enabled` — controls whether the **`web_answer` MCP tool** is advertised to the agent.
-
-`web_answer` is only registered when **both** are `true`. This lets you configure the side LLM once and decide per-project whether the agent may use it.
-
-#### Environment variables
-
-| Variable | Maps to | Description |
-|----------|---------|-------------|
-| `OUTRIDER_CONFIG` | — | Path to the config file |
-| `SEARCH_PROVIDER` | `provider` | `duckduckgo` or `searxng` or `degoog` |
-| `SEARXNG_URL` | `searxng.baseUrl` | SearXNG base URL |
-| `SEARXNG_API_KEY` | `searxng.apiKey` | SearXNG Bearer token |
-| `DEGOOG_URL` | `degoog.baseUrl` | Degoog base URL |
-| `JINA_ENABLED` | `fetch.jina.enabled` | `true` / `false` |
-| `JINA_API_KEY` | `fetch.jina.apiKey` | Jina Reader API key |
-| `FETCH_MAX_LENGTH` | `fetch.maxLength` | Default fetch max length |
-| `FETCH_TIMEOUT_MS` | `fetch.timeoutMs` | HTTP timeout in milliseconds |
-| `FETCH_BROWSER_ENABLED` | `fetch.browser.enabled` | `true` / `false` |
-| `ANSWER_LLM_ENABLED` | `answer.enabled` | `true` / `false` |
-| `ANSWER_LLM_BASE_URL` | `answer.baseUrl` | OpenAI-compatible endpoint |
-| `ANSWER_LLM_API_KEY` | `answer.apiKey` | API key |
-| `ANSWER_LLM_MODEL` | `answer.model` | Model name |
-| `ANSWER_LLM_MAX_TOKENS` | `answer.maxTokens` | Max tokens for final answers |
-| `ANSWER_LLM_TEMPERATURE` | `answer.temperature` | Sampling temperature |
-| `ANSWER_LLM_MAX_TURNS` | `answer.maxTurns` | Max agent loop turns |
-| `ANSWER_LLM_MAX_SEARCHES` | `answer.maxSearches` | Max searches per answer |
-| `ANSWER_LLM_MAX_FETCHES` | `answer.maxFetches` | Max fetches per answer |
-| `TOOLS_WEB_SEARCH_ENABLED` | `tools.web_search.enabled` | `true` / `false` |
-| `TOOLS_WEB_FETCH_ENABLED` | `tools.web_fetch.enabled` | `true` / `false` |
-| `TOOLS_WEB_ANSWER_ENABLED` | `tools.web_answer.enabled` | `true` / `false` |
-
-Backward compatibility: if `ANSWER_LLM_API_KEY` is set but no base URL is configured, Outrider defaults to the Google Gemini OpenAI-compatible endpoint (as before).
-
-### 3. Configure SearXNG (optional)
-
-To use a self-hosted SearXNG instance instead of DuckDuckGo:
-
-```json
-{
-  "provider": "searxng",
-  "searxng": {
-    "baseUrl": "http://localhost:8080"
-  }
-}
-```
-
-Or with environment variables:
-
-```bash
-export SEARCH_PROVIDER=searxng
-export SEARXNG_URL=http://localhost:8080
-```
-
-**SearXNG config requirement:** Make sure `json` is listed in your SearXNG `settings.yml` under `search.formats`:
-
-```yaml
-search:
-  formats:
-    - html
-    - json
-```
-
-Without this, SearXNG returns HTTP 403 on every `/search?format=json` request. If SearXNG is selected but not reachable, the server falls back to DuckDuckGo automatically.
-
-### 3b. Configure Degoog (optional)
-
-To use a self-hosted [Degoog](https://degoog-org.github.io/docs/) instance instead of DuckDuckGo:
-
-```json
-{
-  "provider": "degoog",
-  "degoog": {
-    "baseUrl": "http://localhost:14444"
-  }
-}
-```
-
-Or with environment variables:
-
-```bash
-export SEARCH_PROVIDER=degoog
-export DEGOOG_URL=http://localhost:14444
-```
-
-Degoog runs on port `4444` by default. The provider queries its `/api/search` JSON endpoint, which needs no authentication on a local instance. If Degoog is selected but not reachable, the server falls back to DuckDuckGo automatically.
-
-### 4. Add to your coding agent
-
-Replace `/path/to/outrider` with the actual path to the binary.
-
-#### OpenCode (using a config file)
-
-```json
-{
-  "mcp": {
-    "web-search": {
-      "type": "local",
-      "command": [
-        "/path/to/outrider"
-      ],
-      "env": {
-        "OUTRIDER_CONFIG": "/path/to/config.json"
-      }
-    }
-  }
-}
-```
-
-#### OpenCode (using env variables only)
-
-```json
-{
-  "mcp": {
-    "web-search": {
-      "type": "local",
-      "command": [
-        "/path/to/outrider"
-      ],
-      "env": {
-        "SEARCH_PROVIDER": "searxng",
-        "SEARXNG_URL": "http://localhost:8080",
-        "ANSWER_LLM_API_KEY": "your-key",
-        "ANSWER_LLM_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai/",
-        "ANSWER_LLM_MODEL": "gemma-4-31b-it"
-      }
-    }
-  }
-}
-```
-
-If `web_answer` is not configured, the server starts with only `web_search` and `web_fetch`.
+Setup steps for SearXNG and Degoog are in [Configuration →](./docs/configuration.md#search-providers).
 
 ## Development
 
-### Prerequisites
-
-- Go 1.25+
-
-### Project Structure
-
-```
-outrider-mcp/
-├── main.go              # Server entry point — loads config and wires tools
-├── config/              # Global config file + env override loader
-│   └── config.go
-├── answer/              # Side agent for the web_answer tool
-│   ├── agent.go         # LLM client, tool schemas, bounded agent loop
-│   └── prompts.go       # System prompts for URL and search modes
-├── fetcher/             # HTTP fetching + HTML-to-Markdown extraction
-│   ├── fetcher.go       # Tiered fetch orchestration
-│   ├── jina.go          # Jina Reader tier
-│   ├── browser.go       # chromedp headless-browser tier
-│   └── extract.go       # Local readability + markdown extraction
-├── search/              # Search provider interface and implementations
-│   ├── provider.go      # Provider interface, shared types, helpers
-│   ├── duckduckgo.go    # DuckDuckGo HTML search
-│   ├── searxng.go       # SearXNG JSON API search
-│   └── provider_factory.go  # Provider selection from config/env
-├── tools/               # MCP tool definitions and handlers
-│   ├── web_search.go    # web_search tool (provider-aware schema)
-│   ├── web_fetch.go     # web_fetch tool
-│   └── web_answer.go    # web_answer tool
-└── test/                # Integration tests (live network calls)
-    ├── search/
-    │   └── duckduckgo_test.go
-    ├── fetch/
-    │   └── fetcher_test.go
-    ├── answer/
-    │   └── answer_test.go
-    └── config/
-        └── config_test.go
-```
-
-### Build
+Requires **Go 1.26+**.
 
 ```bash
-go build -o outrider .
+go build -o outrider .              # build
+go test ./search/...                # unit tests (offline)
+go test ./test/... -timeout 120s    # integration tests (live network)
 ```
 
-### Run Tests
+Point any MCP client at the built binary, or inspect it with the [MCP Inspector](https://github.com/modelcontextprotocol/inspector):
 
 ```bash
-go test ./... -v -count=1 -timeout 120s
+npx @modelcontextprotocol/inspector ./outrider
 ```
 
-For `web_answer` tests (requires `ANSWER_LLM_API_KEY`):
+For architecture, conventions, and the constraints agents must follow, see **[AGENTS.md](./AGENTS.md)**.
 
-```bash
-ANSWER_LLM_API_KEY=your-key go test ./test/answer/ -v -count=1 -timeout 120s
-```
+## Contributing
 
-## Verify It Works
+Pull requests are welcome — from humans and coding agents alike.
 
-Use the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to test the server:
-
-```bash
-npx @modelcontextprotocol/inspector /path/to/outrider
-```
-
-This opens a web UI where you can call all tools and inspect the responses.
+- **Using an AI coding agent?** Read [AGENTS.md](./AGENTS.md) first. It documents the project structure, conventions, and the hard constraints every change must respect (for example, stdout is reserved for the MCP JSON-RPC stream, so all logging must go to stderr).
+- **Spotted a bug or have an idea?** [Open an issue](https://github.com/nethbotheju/web-search-mcp/issues).
 
 ## License
 
-MIT
+[MIT](./LICENSE)
